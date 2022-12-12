@@ -4,17 +4,17 @@ Parameters:
   IAMTaskRole:
     Description: Task attached IAM role
     Type: String
-    Default: SumologicAWSOTelColTaskRoleECSFargate
+    Default: ObserveAWSOTelColTaskRoleECSFargate
     ConstraintDescription: must be an existing IAM role which will be attached to EC2 instance.
   IAMExecutionRole:
     Description: Task Execution attached IAM role
     Type: String
-    Default: SumologicAWSOTelColExecutionRoleECSFargate
+    Default: ObserveAWSOTelColExecutionRoleECSFargate
     ConstraintDescription: must be an existing IAM role which will be attached to EC2 instance.
   IAMPolicy:
     Description: IAM Role attached IAM Policy
     Type: String
-    Default: SumologicAWSOTelColPolicyECSFargate
+    Default: ObserveAWSOTelColPolicyECSFargate
     ConstraintDescription: Must be an existing IAM Managed Policy which will be attached to IAM Role.
   ClusterName:
     Type: String
@@ -25,19 +25,30 @@ Parameters:
   Subnets:
     Type: CommaDelimitedList
     Description: The list of Subnets in your Virtual Private Cloud (VPC)
-  SumoAWSOTelColConfig:
+  ObserveAWSOTelColConfig:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: sumologic-otel-col-config
+    Default: observe-otel-col-config
     Description: AWS SSM Parameter which contains OTel Collector config file
-  SumologicReplicaServiceName:
+  ObserveReplicaServiceName:
     Type: String
-    Default: sumologic-aws-otel-col-svc-ecs-fargate
+    Default: observe-aws-otel-col-svc-ecs-fargate
     Description: ECS Service Name
 Resources:
+  BucketListParamater:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Major Config for otel-collector.
+      Name: !Ref ObserveAWSOTelColConfig
+      Type: StringList
+      Value: 
+        Fn::Join:
+          - ','
+          - - Ref: Bucket1
+            - Ref: Bucket2
   ECSTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
-      Family: sumologic-aws-otel-collector-fargate
+      Family: observe-aws-otel-collector-fargate
       TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${IAMTaskRole}'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${IAMExecutionRole}'
       NetworkMode: awsvpc
@@ -51,9 +62,9 @@ Resources:
               awslogs-stream-prefix: ecs
           environment:
             - name: AOT_CONFIG_CONTENT
-              value: !Ref SumoAWSOTelColConfig
+              value: !Ref ObserveAWSOTelColConfig
           image: public.ecr.aws/aws-observability/aws-otel-collector:v0.15.0
-          name: sumologic-aws-otel-collector
+          name: observe-aws-otel-collector
       RequiresCompatibilities:
         - FARGATE
       Cpu: 1024
@@ -69,7 +80,7 @@ Resources:
       LaunchType: FARGATE
       SchedulingStrategy: REPLICA
       DesiredCount: 1
-      ServiceName: !Ref SumologicReplicaServiceName
+      ServiceName: !Ref ObserveReplicaServiceName
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -125,3 +136,8 @@ Resources:
         - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
         - 'arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess'
       RoleName: !Ref IAMExecutionRole
+      # { "Version": "2012-10-17", "Statement": [ {
+      # "Action": [ ssm:PutParameter ssm:AddTagsToResource ],
+      # "Resource": [ "*" ],
+      # "Effect": "Allow" } 
+      # ] }

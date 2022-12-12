@@ -4,34 +4,34 @@ Parameters:
   IAMTaskRole:
     Description: Task attached IAM role
     Type: String
-    Default: SumologicAWSOTelColTaskRoleECSEC2
+    Default: ObservelogicAWSOTelColTaskRoleECSEC2
     ConstraintDescription: must be an existing IAM role which will be attached to EC2 instance.
   IAMExecutionRole:
     Description: Task Execution attached IAM role
     Type: String
-    Default: SumologicAWSOTelColExecutionRoleECSEC2
+    Default: ObservelogicAWSOTelColExecutionRoleECSEC2
     ConstraintDescription: must be an existing IAM role which will be attached to EC2 instance.
   IAMPolicy:
     Description: IAM Role attached IAM Policy
     Type: String
-    Default: SumologicAWSOTelColPolicyECSEC2
+    Default: ObservelogicAWSOTelColPolicyECSEC2
     ConstraintDescription: Must be an existing IAM Managed Policy which will be attached to IAM Role.
   ClusterName:
     Type: String
     Description: Enter the name of your ECS cluster from which you want to collect telemetry data
-  SumoAWSOTelColConfig:
+  ObserveAWSOTelColConfig:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: sumologic-otel-col-config
+    Default: observe-otel-col-config
     Description: AWS SSM Parameter which contains OTel Collector config file
-  SumologicReplicaServiceName:
+  ObservelogicReplicaServiceName:
     Type: String
-    Default: sumologic-aws-otel-col-svc-ecs-ec2
+    Default: observe-aws-otel-col-svc-ecs-ec2
     Description: ECS Service Name
 Resources:
   ECSTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
-      Family: sumologic-aws-otel-collector-ec2
+      Family: observe-aws-otel-collector-ec2
       TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${IAMTaskRole}'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${IAMExecutionRole}'
       ContainerDefinitions:
@@ -57,9 +57,9 @@ Resources:
               containerPort: 55681
           environment:
             - name: AOT_CONFIG_CONTENT
-              value: !Ref SumoAWSOTelColConfig
+              value: !Ref ObserveAWSOTelColConfig
           image: public.ecr.aws/aws-observability/aws-otel-collector:v0.15.0
-          name: sumologic-aws-otel-collector
+          name: observe-aws-otel-collector
       RequiresCompatibilities:
         - EC2
       Cpu: 1024
@@ -75,7 +75,7 @@ Resources:
       LaunchType: EC2
       SchedulingStrategy: REPLICA
       DesiredCount: 1
-      ServiceName: !Ref SumologicReplicaServiceName
+      ServiceName: !Ref ObservelogicReplicaServiceName
   ECSTaskRole:
     Type: 'AWS::IAM::Role'
     Properties:

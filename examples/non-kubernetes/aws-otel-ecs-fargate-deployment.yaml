@@ -4,17 +4,17 @@ Parameters:
   IAMTaskRole:
     Description: Task attached IAM role
     Type: String
-    Default: ObserveAWSOTelColTaskRoleECSFargate
+    Default: ObserveAWSTraceTaskRole 
     ConstraintDescription: must be an existing IAM role which will be attached to EC2 instance.
   IAMExecutionRole:
     Description: Task Execution attached IAM role
     Type: String
-    Default: ObserveAWSOTelColExecutionRoleECSFargate
+    Default: ObserveAWSTraceExecutionRole
     ConstraintDescription: must be an existing IAM role which will be attached to EC2 instance.
   IAMPolicy:
     Description: IAM Role attached IAM Policy
     Type: String
-    Default: ObserveAWSOTelColPolicyECSFargate
+    Default: ObserveAWSTracePolicy
     ConstraintDescription: Must be an existing IAM Managed Policy which will be attached to IAM Role.
   ClusterName:
     Type: String
@@ -27,24 +27,13 @@ Parameters:
     Description: The list of Subnets in your Virtual Private Cloud (VPC)
   ObserveAWSOTelColConfig:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: observe-otel-col-config
+    Default: Observe-Otel-Col-Config
     Description: AWS SSM Parameter which contains OTel Collector config file
   ObserveReplicaServiceName:
     Type: String
     Default: observe-aws-otel-col-svc-ecs-fargate
     Description: ECS Service Name
 Resources:
-  BucketListParamater:
-    Type: AWS::SSM::Parameter
-    Properties: 
-      Description: Major Config for otel-collector.
-      Name: !Ref ObserveAWSOTelColConfig
-      Type: StringList
-      Value: 
-        Fn::Join:
-          - ','
-          - - Ref: Bucket1
-            - Ref: Bucket2
   ECSTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
@@ -62,7 +51,7 @@ Resources:
               awslogs-stream-prefix: ecs
           environment:
             - name: AOT_CONFIG_CONTENT
-              value: !Ref ObserveAWSOTelColConfig
+              valueFrom: !Ref ObserveAWSOTelColConfig
           image: public.ecr.aws/aws-observability/aws-otel-collector:v0.15.0
           name: observe-aws-otel-collector
       RequiresCompatibilities:
